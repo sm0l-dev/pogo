@@ -168,11 +168,11 @@ function initThreeJS() {
     // Lighting - Three-point studio setup (REBALANCED for sRGB)
     // All values reduced ~50% to compensate for gamma correction brightness boost
     
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.0);
     AppState.scene.add(ambientLight);
     
-    const keyLight = new THREE.DirectionalLight(0xffffff, 0.5);
-    keyLight.position.set(15, 20, 15);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    keyLight.position.set(0, 10, 10);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
@@ -185,16 +185,16 @@ function initThreeJS() {
     keyLight.shadow.bias = -0.0001; // Reduce shadow artifacts
     AppState.scene.add(keyLight);
     
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.65);
     fillLight.position.set(-15, 10, -10);
     AppState.scene.add(fillLight);
     
     
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.9);
     rimLight.position.set(0, -5, -15);
     AppState.scene.add(rimLight);
     
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.2);
+    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0xfff, 0.2);
     AppState.scene.add(hemisphereLight);
     
     updateLoadingProgress(40, 'Creating ground plane...');
@@ -203,7 +203,7 @@ function initThreeJS() {
     const groundGeometry = new THREE.PlaneGeometry(100, 100);
     const groundMaterial = new THREE.ShadowMaterial({ 
         opacity: 0.15, // Slightly reduced for softer shadows in sRGB
-        color: 0x000000
+        color: 0xfff
     });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
@@ -312,8 +312,8 @@ function applyMaterialsToModel(model) {
     const materials = {
         gold: new THREE.MeshStandardMaterial({
             color: 0xEFBF04,
-            metalness: 0.83,
-            roughness: 0.05,
+            metalness: 0.65,
+            roughness: 0.0,
             name: 'gold'
         }),
         silver: new THREE.MeshStandardMaterial({
