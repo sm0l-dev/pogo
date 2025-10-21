@@ -94,6 +94,25 @@
             </label>
           </div>
 
+          <!-- Zoom Control -->
+          <div>
+            <label class="block mb-2 font-bold">Zoom Level</label>
+            <input
+              type="range"
+              id="zoom-slider"
+              min="10"
+              max="50"
+              step="0.5"
+              value="25"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div class="flex justify-between text-xs mt-1">
+              <span>Close</span>
+              <span id="zoom-display" class="font-bold">25</span>
+              <span>Far</span>
+            </div>
+          </div>
+
           <!-- Model Selector -->
           <div class="pt-4 border-t-2 border-gray-300">
             <label class="block mb-2 font-bold">Model View</label>
@@ -175,6 +194,9 @@
 
     <!-- OBJLoader -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
+    <!-- RGBELoader for HDR environments -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
 
     <!-- Main Application Script - PURE VANILLA -->
     <script src="script.js"></script>

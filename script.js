@@ -32,6 +32,12 @@ const AppState = {
   isDragging: false,
   previousMousePosition: { x: 0, y: 0 },
 
+  // Zoom State
+  minZoom: 10,
+  maxZoom: 50,
+  zoomSpeed: 0.1,
+  currentZoom: 25, // Initial camera z position
+
   // Loading State
   loadingProgress: 0,
 
@@ -100,6 +106,8 @@ function cacheDOMElements() {
   DOM.rotationSpeedInput = document.getElementById("rotation-speed");
   DOM.speedDisplay = document.getElementById("speed-display");
   DOM.autoRotateCheckbox = document.getElementById("auto-rotate");
+  DOM.zoomSlider = document.getElementById("zoom-slider");
+  DOM.zoomDisplay = document.getElementById("zoom-display");
   DOM.modelRadios = document.querySelectorAll('input[name="model-view"]');
   DOM.canvasContainer = document.getElementById("canvas-container");
 }
@@ -160,13 +168,17 @@ function initThreeJS() {
 
   updateLoadingProgress(30, "Adding lights...");
 
+  // Load HDR environment first
+  loadHDREnvironment();
+
   // Lighting - Three-point studio setup (REBALANCED for sRGB)
   // All values reduced ~50% to compensate for gamma correction brightness boost
+  // Note: Reduced intensities to work with HDR environment
 
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
   AppState.scene.add(ambientLight);
 
-  const keyLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.683);
   keyLight.position.set(15, 20, 15);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.width = 2048;
@@ -180,16 +192,13 @@ function initThreeJS() {
   keyLight.shadow.bias = -0.0001; // Reduce shadow artifacts
   AppState.scene.add(keyLight);
 
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.25);
+  const fillLight = new THREE.DirectionalLight(0xffffff, 0.243514);
   fillLight.position.set(-15, 10, -10);
   AppState.scene.add(fillLight);
 
-  const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.15);
   rimLight.position.set(0, -5, -15);
   AppState.scene.add(rimLight);
-
-  const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.2);
-  AppState.scene.add(hemisphereLight);
 
   updateLoadingProgress(40, "Creating ground plane...");
 
@@ -211,6 +220,53 @@ function initThreeJS() {
   updateLoadingProgress(50, "Three.js ready!");
   console.log("✓ Three.js scene initialized with sRGB color management");
   console.log("✓ Lighting rebalanced for gamma correction");
+}
+
+// ============================================
+// HDR ENVIRONMENT LOADING
+// ============================================
+function loadHDREnvironment() {
+  // Check if RGBELoader exists
+  if (typeof THREE.RGBELoader === "undefined") {
+    console.warn("⚠️ RGBELoader not found - skipping HDR environment");
+    return;
+  }
+
+  const rgbeLoader = new THREE.RGBELoader();
+
+  // Using a compatible .hdr file from a public CDN
+  // Alternative HDR files if this doesn't work:
+  // - "https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr"
+  // - "https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr"
+  rgbeLoader.load(
+    "https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr",
+    (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+
+      // Set as environment map (for reflections and lighting)
+      AppState.scene.environment = texture;
+
+      // Optional: Set as background (disabled like in the docs)
+      // AppState.scene.background = texture;
+
+      // Apply environment rotation (180° like in configurator)
+      // Note: Three.js doesn't have direct environment rotation in r128
+      // We'll handle this through material settings instead
+
+      console.log("✓ HDR environment loaded successfully");
+      console.log("✓ Environment intensity: 0.1 (controlled by tone mapping)");
+    },
+    (progress) => {
+      if (progress.lengthComputable) {
+        const percent = (progress.loaded / progress.total) * 100;
+        console.log(`Loading HDR: ${percent.toFixed(2)}%`);
+      }
+    },
+    (error) => {
+      console.warn("⚠️ Could not load HDR environment:", error);
+      console.log("Continuing with standard lighting setup");
+    }
+  );
 }
 
 // ============================================
@@ -305,7 +361,7 @@ function applyMaterialsToModel(model) {
   const materials = {
     gold: new THREE.MeshStandardMaterial({
       color: 0xefbf04,
-      metalness: 0.83,
+      metalness: 0.95,
       roughness: 0.05,
       name: "gold",
     }),
@@ -316,9 +372,10 @@ function applyMaterialsToModel(model) {
       name: "silver",
     }),
     black_abs: new THREE.MeshStandardMaterial({
-      color: 0x1a1a1a,
-      roughness: 0.9, // Matte finish
+      color: 0x0a0a0a, // Slightly lighter to prevent pure black issues
+      roughness: 1.0, // Maximum roughness for completely matte finish
       metalness: 0.0, // No metalness for plastic
+      envMapIntensity: 0.1, // Drastically reduce environment reflections
       name: "black_abs",
     }),
     magnet: new THREE.MeshStandardMaterial({
@@ -556,6 +613,13 @@ function setupEventListeners() {
     AppState.autoRotate = e.target.checked;
   });
 
+  // Zoom slider
+  DOM.zoomSlider.addEventListener("input", (e) => {
+    AppState.currentZoom = parseFloat(e.target.value);
+    DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+    AppState.camera.position.z = AppState.currentZoom;
+  });
+
   // Model radio buttons
   DOM.modelRadios.forEach((radio) => {
     radio.addEventListener("change", (e) => {
@@ -568,6 +632,9 @@ function setupEventListeners() {
 
   // Mouse controls
   setupMouseControls();
+
+  // Zoom controls
+  setupZoomControls();
 
   // Window resize
   window.addEventListener("resize", onWindowResize);
@@ -649,6 +716,73 @@ function setupMouseControls() {
   });
 
   console.log("✓ Mouse controls initialized");
+}
+
+// ============================================
+// ZOOM CONTROLS
+// ============================================
+function setupZoomControls() {
+  const canvas = AppState.renderer.domElement;
+
+  // Mouse wheel zoom
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+
+    // Determine zoom direction
+    const delta = e.deltaY > 0 ? 1 : -1;
+
+    // Update camera position
+    AppState.currentZoom += delta * AppState.zoomSpeed * 5;
+    AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
+
+    AppState.camera.position.z = AppState.currentZoom;
+
+    // Sync slider
+    if (DOM.zoomSlider) {
+      DOM.zoomSlider.value = AppState.currentZoom;
+      DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+    }
+  }, { passive: false });
+
+  // Touch pinch-to-zoom
+  let initialPinchDistance = 0;
+  let initialZoom = AppState.currentZoom;
+
+  canvas.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      // Calculate initial pinch distance
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      initialPinchDistance = Math.sqrt(dx * dx + dy * dy);
+      initialZoom = AppState.currentZoom;
+    }
+  });
+
+  canvas.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+
+      // Calculate current pinch distance
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const currentDistance = Math.sqrt(dx * dx + dy * dy);
+
+      // Calculate zoom based on pinch distance change
+      const pinchScale = currentDistance / initialPinchDistance;
+      AppState.currentZoom = initialZoom / pinchScale;
+      AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
+
+      AppState.camera.position.z = AppState.currentZoom;
+
+      // Sync slider
+      if (DOM.zoomSlider) {
+        DOM.zoomSlider.value = AppState.currentZoom;
+        DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+      }
+    }
+  }, { passive: false });
+
+  console.log("✓ Zoom controls initialized");
 }
 
 // ============================================
