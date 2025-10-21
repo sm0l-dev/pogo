@@ -725,24 +725,28 @@ function setupZoomControls() {
   const canvas = AppState.renderer.domElement;
 
   // Mouse wheel zoom
-  canvas.addEventListener("wheel", (e) => {
-    e.preventDefault();
+  canvas.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
 
-    // Determine zoom direction
-    const delta = e.deltaY > 0 ? 1 : -1;
+      // Determine zoom direction
+      const delta = e.deltaY > 0 ? 1 : -1;
 
-    // Update camera position
-    AppState.currentZoom += delta * AppState.zoomSpeed * 5;
-    AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
+      // Update camera position
+      AppState.currentZoom += delta * AppState.zoomSpeed * 5;
+      AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
 
-    AppState.camera.position.z = AppState.currentZoom;
+      AppState.camera.position.z = AppState.currentZoom;
 
-    // Sync slider
-    if (DOM.zoomSlider) {
-      DOM.zoomSlider.value = AppState.currentZoom;
-      DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
-    }
-  }, { passive: false });
+      // Sync slider
+      if (DOM.zoomSlider) {
+        DOM.zoomSlider.value = AppState.currentZoom;
+        DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+      }
+    },
+    { passive: false }
+  );
 
   // Touch pinch-to-zoom
   let initialPinchDistance = 0;
@@ -758,29 +762,33 @@ function setupZoomControls() {
     }
   });
 
-  canvas.addEventListener("touchmove", (e) => {
-    if (e.touches.length === 2) {
-      e.preventDefault();
+  canvas.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
 
-      // Calculate current pinch distance
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const currentDistance = Math.sqrt(dx * dx + dy * dy);
+        // Calculate current pinch distance
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const currentDistance = Math.sqrt(dx * dx + dy * dy);
 
-      // Calculate zoom based on pinch distance change
-      const pinchScale = currentDistance / initialPinchDistance;
-      AppState.currentZoom = initialZoom / pinchScale;
-      AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
+        // Calculate zoom based on pinch distance change
+        const pinchScale = currentDistance / initialPinchDistance;
+        AppState.currentZoom = initialZoom / pinchScale;
+        AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
 
-      AppState.camera.position.z = AppState.currentZoom;
+        AppState.camera.position.z = AppState.currentZoom;
 
-      // Sync slider
-      if (DOM.zoomSlider) {
-        DOM.zoomSlider.value = AppState.currentZoom;
-        DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+        // Sync slider
+        if (DOM.zoomSlider) {
+          DOM.zoomSlider.value = AppState.currentZoom;
+          DOM.zoomDisplay.textContent = AppState.currentZoom.toFixed(1);
+        }
       }
-    }
-  }, { passive: false });
+    },
+    { passive: false }
+  );
 
   console.log("✓ Zoom controls initialized");
 }
