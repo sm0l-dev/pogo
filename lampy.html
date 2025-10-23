@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lampy Parts | Absurd Industries</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="3D exploration of lamp parts - engineered precision, modular design." />
+    <meta name="author" content="Amit @ Absurd Industries" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["Space Mono", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- External Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body class="bg-black text-white">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="bg-white/95 border-4 border-black p-8 text-black text-center">
+        <h2 class="text-3xl font-bold mb-4">
+          LOAD
+          <span class="text-xs align-super">ING</span>
+        </h2>
+        <p id="loading-message" class="text-sm mb-4">Initializing scene...</p>
+        <div class="w-80 h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
+          <div id="loading-bar" class="h-full bg-black transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="loading-percentage" class="text-xs mt-2 text-gray-600">0%</p>
+      </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Controls Panel -->
+    <div id="controls-panel" class="controls-panel hidden">
+      <div class="bg-white/95 border-4 border-black p-6 max-w-xs">
+        <h2 class="text-2xl font-bold text-black mb-2">
+          LAMP
+          <span class="text-xs align-super">Y</span>
+        </h2>
+        <p class="text-sm text-gray-700 mb-4">Modular Parts Assembly</p>
+
+        <div class="space-y-4 text-sm text-gray-900">
+          <!-- Zoom Control -->
+          <div>
+            <label class="block mb-2 font-bold">Zoom Level</label>
+            <input
+              type="range"
+              id="zoom-slider"
+              min="20"
+              max="100"
+              step="1"
+              value="50"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <div class="flex justify-between text-xs mt-1">
+              <span>Close</span>
+              <span id="zoom-display" class="font-bold">50</span>
+              <span>Far</span>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div id="model-status" class="pt-4 border-t-2 border-gray-300 hidden">
+            <p class="text-xs text-green-700 font-bold">✓ Parts Loaded</p>
+            <p id="parts-count" class="text-xs text-gray-600 mt-1"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Credit -->
+    <div id="footer-credit" class="footer-credit hidden">
+      <div class="bg-white/90 border-4 border-black px-4 py-2 text-black text-xs font-bold">
+        <a href="https://layogtima.com" target="_blank" class="hover:underline">ABSURD INDUSTRIES</a>
+        <span class="mx-2">|</span>
+        <span>Open-Source Hardware Guild</span>
+      </div>
+    </div>
+
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- OBJLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
+    <!-- RGBELoader for HDR environments -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+    <!-- Main Application Script -->
+    <script>
+      /**
+       * LAMPY - MODULAR PARTS VIEWER
+       * Simplified viewer for lamp components
+       * Absurd Industries | Open-Source Hardware Guild
+       */
+
+      // ============================================
+      // CONFIGURATION
+      // ============================================
+      const PARTS_TO_LOAD = [
+        {
+          file: "3d-files/base.obj",
+          name: "Base",
+          components: {
+            node: { material: "plastic", color: "off-white" },
+          },
+        }, // plastic
+        {
+          file: "3d-files/lampy-mag-bottom-wider.obj",
+          name: "Mag Bottom",
+          components: {
+            node: { material: "plastic", color: "off-white" },
+          },
+        }, // plastic
+        {
+          file: "3d-files/lampy-mag-insert-fillet.obj",
+          name: "Mag Insert",
+          components: {
+            node: { material: "plastic", color: "off-white" },
+          },
+        }, // plastic
+        {
+          file: "3d-files/lampy.obj",
+          name: "Lampy Main",
+          components: {
+            node: { material: "paper", color: "off-white" },
+          },
+        }, // paper
+        {
+          file: "3d-files/connector.obj",
+          name: "Connector",
+          components: {
+            housing: { material: "plastic", color: "dark-gray" },
+            magnet: { material: "metal", color: "steel" },
+            pin: { material: "metal", color: "gold" },
+          },
+        },
+        {
+          file: "3d-files/connector-pins.obj",
+          name: "Connector Pins",
+          components: {
+            housing: { material: "plastic", color: "dark-gray" },
+            magnet: { material: "metal", color: "steel" },
+            pin: { material: "metal", color: "gold" },
+          },
+        },
+        { file: "3d-files/XIAO-ESP32C3.obj", name: "XIAO ESP32C3" },
+      ];
+
+      const SPACING = 15; // Distance between parts along x-axis
+
+      // ============================================
+      // STATE MANAGEMENT
+      // ============================================
+      const AppState = {
+        scene: null,
+        camera: null,
+        renderer: null,
+        clock: null,
+        partsGroup: null,
+        loadedParts: [],
+
+        // Control State
+        currentZoom: 50,
+        minZoom: 20,
+        maxZoom: 100,
+
+        // Mouse Interaction
+        isDragging: false,
+        previousMousePosition: { x: 0, y: 0 },
+
+        // Loading State
+        loadingProgress: 0,
+      };
+
+      // ============================================
+      // DOM ELEMENTS
+      // ============================================
+      const DOM = {
+        loadingScreen: null,
+        loadingMessage: null,
+        loadingBar: null,
+        loadingPercentage: null,
+        controlsPanel: null,
+        footerCredit: null,
+        modelStatus: null,
+        partsCount: null,
+        zoomSlider: null,
+        zoomDisplay: null,
+        canvasContainer: null,
+      };
+
+      // ============================================
+      // INITIALIZATION
+      // ============================================
+      function init() {
+        console.log("🚀 Lampy Parts Viewer");
+        cacheDOMElements();
+        initThreeJS();
+        loadAllParts();
+        setupEventListeners();
+        animate();
+      }
+
+      // ============================================
+      // DOM ELEMENT CACHING
+      // ============================================
+      function cacheDOMElements() {
+        DOM.loadingScreen = document.getElementById("loading-screen");
+        DOM.loadingMessage = document.getElementById("loading-message");
+        DOM.loadingBar = document.getElementById("loading-bar");
+        DOM.loadingPercentage = document.getElementById("loading-percentage");
+        DOM.controlsPanel = document.getElementById("controls-panel");
+        DOM.footerCredit = document.getElementById("footer-credit");
+        DOM.modelStatus = document.getElementById("model-status");
+        DOM.partsCount = document.getElementById("parts-count");
+        DOM.zoomSlider = document.getElementById("zoom-slider");
+        DOM.zoomDisplay = document.getElementById("zoom-display");
+        DOM.canvasContainer = document.getElementById("canvas-container");
+      }
+
+      // ============================================
+      // LOADING UI HELPERS
+      // ============================================
+      function updateLoadingProgress(progress, message) {
+        AppState.loadingProgress = progress;
+        DOM.loadingBar.style.width = progress + "%";
+        DOM.loadingPercentage.textContent = progress + "%";
+        if (message) {
+          DOM.loadingMessage.textContent = message;
+        }
+      }
+
+      function hideLoadingScreen() {
+        DOM.loadingScreen.classList.add("hidden");
+        DOM.controlsPanel.classList.remove("hidden");
+        DOM.footerCredit.classList.remove("hidden");
+        DOM.modelStatus.classList.remove("hidden");
+      }
+
+      // ============================================
+      // THREE.JS INITIALIZATION
+      // ============================================
+      function initThreeJS() {
+        updateLoadingProgress(10, "Setting up 3D scene...");
+
+        // Scene
+        AppState.scene = new THREE.Scene();
+        AppState.scene.background = new THREE.Color(0x333333);
+
+        // Camera
+        AppState.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        AppState.camera.position.set(0, 20, 50);
+        AppState.camera.lookAt(0, 0, 0);
+
+        updateLoadingProgress(20, "Configuring renderer...");
+
+        // Renderer
+        AppState.renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: false,
+        });
+        AppState.renderer.setSize(window.innerWidth, window.innerHeight);
+        AppState.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        AppState.renderer.shadowMap.enabled = true;
+        AppState.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        AppState.renderer.outputEncoding = THREE.sRGBEncoding;
+        AppState.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        AppState.renderer.toneMappingExposure = 0.85;
+
+        DOM.canvasContainer.appendChild(AppState.renderer.domElement);
+
+        updateLoadingProgress(30, "Adding lights...");
+
+        // Load HDR environment
+        loadHDREnvironment();
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        AppState.scene.add(ambientLight);
+
+        const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        keyLight.position.set(20, 30, 20);
+        keyLight.castShadow = true;
+        keyLight.shadow.mapSize.width = 2048;
+        keyLight.shadow.mapSize.height = 2048;
+        keyLight.shadow.camera.near = 0.5;
+        keyLight.shadow.camera.far = 100;
+        keyLight.shadow.camera.left = -50;
+        keyLight.shadow.camera.right = 50;
+        keyLight.shadow.camera.top = 50;
+        keyLight.shadow.camera.bottom = -50;
+        AppState.scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        fillLight.position.set(-20, 15, -15);
+        AppState.scene.add(fillLight);
+
+        updateLoadingProgress(40, "Creating ground plane...");
+
+        // Ground plane
+        const groundGeometry = new THREE.PlaneGeometry(200, 200);
+        const groundMaterial = new THREE.ShadowMaterial({
+          opacity: 0.15,
+          color: 0x000000,
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -10;
+        ground.receiveShadow = true;
+        AppState.scene.add(ground);
+
+        // Clock
+        AppState.clock = new THREE.Clock();
+
+        // Create group for all parts
+        AppState.partsGroup = new THREE.Group();
+        AppState.scene.add(AppState.partsGroup);
+
+        updateLoadingProgress(50, "Scene ready!");
+        console.log("✓ Three.js scene initialized");
+      }
+
+      // ============================================
+      // HDR ENVIRONMENT LOADING
+      // ============================================
+      function loadHDREnvironment() {
+        if (typeof THREE.RGBELoader === "undefined") {
+          console.warn("⚠️ RGBELoader not found - skipping HDR environment");
+          return;
+        }
+
+        const rgbeLoader = new THREE.RGBELoader();
+        rgbeLoader.load(
+          "https://threejs.org/examples/textures/equirectangular/royal_esplanade_1k.hdr",
+          (texture) => {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            AppState.scene.environment = texture;
+            console.log("✓ HDR environment loaded");
+          },
+          undefined,
+          (error) => {
+            console.warn("⚠️ Could not load HDR environment:", error);
+          }
+        );
+      }
+
+      // ============================================
+      // PARTS LOADING
+      // ============================================
+      async function loadAllParts() {
+        updateLoadingProgress(55, "Loading parts...");
+
+        if (typeof THREE.OBJLoader === "undefined") {
+          console.error("❌ OBJLoader not found");
+          return;
+        }
+
+        const loader = new THREE.OBJLoader();
+        const totalParts = PARTS_TO_LOAD.length;
+        let loadedCount = 0;
+
+        for (let i = 0; i < totalParts; i++) {
+          const partInfo = PARTS_TO_LOAD[i];
+          const progressStart = 55;
+          const progressEnd = 95;
+          const progress = progressStart + (i / totalParts) * (progressEnd - progressStart);
+
+          updateLoadingProgress(Math.round(progress), `Loading ${partInfo.name}... (${i + 1}/${totalParts})`);
+
+          try {
+            const part = await loadOBJ(loader, partInfo.file);
+
+            // Apply materials
+            applyMaterialsToPart(part, partInfo);
+
+            // Setup and position part
+            setupPart(part, partInfo.name);
+
+            // Position along x-axis
+            const xPosition = (i - (totalParts - 1) / 2) * SPACING;
+            part.position.x = xPosition;
+
+            AppState.partsGroup.add(part);
+            AppState.loadedParts.push({ model: part, info: partInfo });
+
+            loadedCount++;
+            console.log(`✓ Loaded ${partInfo.name} at x=${xPosition}`);
+          } catch (error) {
+            console.error(`❌ Error loading ${partInfo.name}:`, error);
+          }
+        }
+
+        updateLoadingProgress(100, "All parts loaded!");
+        DOM.partsCount.textContent = `${loadedCount} parts loaded`;
+
+        setTimeout(hideLoadingScreen, 500);
+        console.log(`✓ Loaded ${loadedCount}/${totalParts} parts`);
+      }
+
+      function loadOBJ(loader, path) {
+        return new Promise((resolve, reject) => {
+          loader.load(
+            path,
+            (object) => resolve(object),
+            undefined,
+            (error) => reject(error)
+          );
+        });
+      }
+
+      // ============================================
+      // MATERIAL APPLICATION
+      // ============================================
+      function applyMaterialsToPart(part, partInfo) {
+        // Color definitions
+        const colors = {
+          "off-white": 0xf5f5f0,
+          "dark-gray": 0x2a2a2a,
+          steel: 0xb0b0b8,
+          gold: 0xffd700,
+          copper: 0xb87333,
+        };
+
+        // Material factory based on type and color
+        function createMaterial(materialType, colorName) {
+          const color = colors[colorName] || 0xcccccc;
+
+          switch (materialType) {
+            case "plastic":
+              return new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.8,
+                metalness: 0.0,
+                envMapIntensity: 0.2,
+              });
+
+            case "metal":
+              return new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.9,
+                roughness: 0.2,
+                envMapIntensity: 1.0,
+              });
+
+            case "paper":
+              return new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 1.0,
+                metalness: 0.0,
+                envMapIntensity: 0.05,
+              });
+
+            default:
+              return new THREE.MeshStandardMaterial({
+                color: color,
+                metalness: 0.5,
+                roughness: 0.5,
+              });
+          }
+        }
+
+        // Default material for parts without component specifications
+        const defaultMaterial = new THREE.MeshStandardMaterial({
+          color: 0xcccccc,
+          metalness: 0.5,
+          roughness: 0.5,
+        });
+
+        part.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+
+            // If part has component specifications, try to match by name
+            if (partInfo.components) {
+              const childName = child.name.toLowerCase();
+              let materialApplied = false;
+
+              // Check each component specification
+              for (const [componentName, spec] of Object.entries(partInfo.components)) {
+                if (childName.includes(componentName.toLowerCase())) {
+                  child.material = createMaterial(spec.material, spec.color);
+                  materialApplied = true;
+                  break;
+                }
+              }
+
+              // If no specific component matched, use the "node" component if it exists
+              if (!materialApplied && partInfo.components.node) {
+                const spec = partInfo.components.node;
+                child.material = createMaterial(spec.material, spec.color);
+              } else if (!materialApplied) {
+                child.material = defaultMaterial;
+              }
+            } else {
+              // No component specifications, use default
+              child.material = defaultMaterial;
+            }
+          }
+        });
+      }
+
+      // ============================================
+      // PART SETUP
+      // ============================================
+      function setupPart(part, partName) {
+        // console.log(JSON.stringify(Object.keys(part)));
+        // console.log(JSON.stringify(part));
+        // console.log(partName);
+
+        const box = new THREE.Box3().setFromObject(part);
+        const center = box.getCenter(new THREE.Vector3());
+
+        // Center the part but only along X axis
+        // Keep Y and Z at 0 to align all parts
+        part.position.set(-center.x, -center.y, -center.z);
+
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        // const scale = 10 / maxDim;
+        const scale = 0.3;
+
+        console.log(partName, maxDim, scale);
+
+        part.scale.multiplyScalar(scale);
+
+        // Reset Y and Z to 0 after scaling to ensure alignment
+        part.position.y = 0;
+        part.position.z = 0;
+      }
+
+      // ============================================
+      // EVENT LISTENERS
+      // ============================================
+      function setupEventListeners() {
+        // Zoom slider
+        DOM.zoomSlider.addEventListener("input", (e) => {
+          AppState.currentZoom = parseFloat(e.target.value);
+          DOM.zoomDisplay.textContent = AppState.currentZoom;
+          AppState.camera.position.z = AppState.currentZoom;
+        });
+
+        // Mouse controls
+        setupMouseControls();
+
+        // Zoom controls
+        setupZoomControls();
+
+        // Window resize
+        window.addEventListener("resize", onWindowResize);
+
+        console.log("✓ Event listeners initialized");
+      }
+
+      // ============================================
+      // MOUSE CONTROLS
+      // ============================================
+      function setupMouseControls() {
+        const canvas = AppState.renderer.domElement;
+
+        canvas.addEventListener("mousedown", (e) => {
+          AppState.isDragging = true;
+          AppState.previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+          if (!AppState.isDragging || !AppState.partsGroup) return;
+
+          const deltaX = e.clientX - AppState.previousMousePosition.x;
+          const deltaY = e.clientY - AppState.previousMousePosition.y;
+
+          AppState.partsGroup.rotation.y += deltaX * 0.01;
+          AppState.partsGroup.rotation.x += deltaY * 0.01;
+
+          AppState.previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        canvas.addEventListener("mouseup", () => {
+          AppState.isDragging = false;
+        });
+
+        canvas.addEventListener("mouseleave", () => {
+          AppState.isDragging = false;
+        });
+
+        // Touch controls
+        canvas.addEventListener("touchstart", (e) => {
+          if (e.touches.length === 1) {
+            AppState.isDragging = true;
+            AppState.previousMousePosition = {
+              x: e.touches[0].clientX,
+              y: e.touches[0].clientY,
+            };
+          }
+        });
+
+        canvas.addEventListener(
+          "touchmove",
+          (e) => {
+            if (!AppState.isDragging || !AppState.partsGroup || e.touches.length !== 1) return;
+
+            e.preventDefault();
+
+            const deltaX = e.touches[0].clientX - AppState.previousMousePosition.x;
+            const deltaY = e.touches[0].clientY - AppState.previousMousePosition.y;
+
+            AppState.partsGroup.rotation.y += deltaX * 0.01;
+            AppState.partsGroup.rotation.x += deltaY * 0.01;
+
+            AppState.previousMousePosition = {
+              x: e.touches[0].clientX,
+              y: e.touches[0].clientY,
+            };
+          },
+          { passive: false }
+        );
+
+        canvas.addEventListener("touchend", () => {
+          AppState.isDragging = false;
+        });
+      }
+
+      // ============================================
+      // ZOOM CONTROLS
+      // ============================================
+      function setupZoomControls() {
+        const canvas = AppState.renderer.domElement;
+
+        canvas.addEventListener(
+          "wheel",
+          (e) => {
+            e.preventDefault();
+
+            const delta = e.deltaY > 0 ? 1 : -1;
+            AppState.currentZoom += delta * 2;
+            AppState.currentZoom = Math.max(AppState.minZoom, Math.min(AppState.maxZoom, AppState.currentZoom));
+
+            AppState.camera.position.z = AppState.currentZoom;
+
+            if (DOM.zoomSlider) {
+              DOM.zoomSlider.value = AppState.currentZoom;
+              DOM.zoomDisplay.textContent = AppState.currentZoom;
+            }
+          },
+          { passive: false }
+        );
+      }
+
+      // ============================================
+      // ANIMATION LOOP
+      // ============================================
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Render
+        AppState.renderer.render(AppState.scene, AppState.camera);
+      }
+
+      // ============================================
+      // WINDOW RESIZE
+      // ============================================
+      function onWindowResize() {
+        AppState.camera.aspect = window.innerWidth / window.innerHeight;
+        AppState.camera.updateProjectionMatrix();
+        AppState.renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      // ============================================
+      // START
+      // ============================================
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+      } else {
+        init();
+      }
+    </script>
+  </body>
+</html>
