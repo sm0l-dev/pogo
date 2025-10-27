@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lampy Parts | Absurd Industries</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="3D exploration of lamp parts - engineered precision, modular design." />
+    <meta name="author" content="Amit @ Absurd Industries" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["Space Mono", "monospace"],
+            },
+            keyframes: {
+              slideInLeft: {
+                from: { transform: "translateX(-100%)", opacity: "0" },
+                to: { transform: "translateX(0)", opacity: "1" },
+              },
+              slideInUp: {
+                from: { transform: "translateY(100%)", opacity: "0" },
+                to: { transform: "translateY(0)", opacity: "1" },
+              },
+            },
+            animation: {
+              slideInLeft: "slideInLeft 0.5s ease-out",
+              slideInUp: "slideInUp 0.5s ease-out 0.4s backwards",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="bg-black text-white overflow-hidden font-mono">
+    <!-- Loading Screen -->
+    <div
+      id="loading-screen"
+      class="fixed inset-0 bg-black/95 backdrop-blur-[10px] flex items-center justify-center z-[1000]"
+    >
+      <div class="bg-white/95 border-4 border-black p-8 text-black text-center">
+        <h2 class="text-3xl font-bold mb-4">
+          LOAD
+          <span class="text-xs align-super">ING</span>
+        </h2>
+        <p id="loading-message" class="text-sm mb-4">Initializing scene...</p>
+        <div class="w-80 h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
+          <div id="loading-bar" class="h-full bg-black transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="loading-percentage" class="text-xs mt-2 text-gray-600">0%</p>
+      </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container" class="fixed top-0 left-0 w-screen h-screen z-[1]"></div>
+
+    <!-- Controls Panel -->
+    <div id="controls-panel" class="fixed top-5 left-5 z-10 animate-slideInLeft hidden">
+      <div class="bg-white/95 border-4 border-black p-6 max-w-xs max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold text-black mb-2">LAMPY</h2>
+        <p class="text-sm text-gray-700 mb-4">Modular Parts Assembly</p>
+
+        <div class="space-y-4 text-sm text-gray-900">
+          <!-- Zoom Control -->
+          <div>
+            <label class="block mb-2 font-bold">Zoom Level</label>
+            <input
+              type="number"
+              id="zoom-slider"
+              min="20"
+              max="100"
+              step="1"
+              value="50"
+              class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+            />
+          </div>
+
+          <!-- Camera Position Controls -->
+          <details class="pt-4 border-t-2 border-gray-300">
+            <summary class="font-bold mb-3 cursor-pointer hover:text-gray-700">Camera Position</summary>
+            <div class="space-y-2 mt-3">
+              <div>
+                <label class="block text-xs mb-1">Camera X</label>
+                <input
+                  type="number"
+                  id="cam-x"
+                  step="1"
+                  value="0"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Camera Y</label>
+                <input
+                  type="number"
+                  id="cam-y"
+                  step="1"
+                  value="20"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Camera Z</label>
+                <input
+                  type="number"
+                  id="cam-z"
+                  step="1"
+                  value="50"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+            </div>
+            <button
+              id="reset-camera"
+              class="w-full mt-3 px-3 py-1 bg-gray-200 text-black font-bold text-xs hover:bg-gray-300 border-2 border-black"
+            >
+              Reset Camera
+            </button>
+          </details>
+
+          <!-- Object Selection -->
+          <div class="pt-4 border-t-2 border-gray-300">
+            <label class="block mb-2 font-bold">Select Object</label>
+            <select id="object-selector" class="w-full px-2 py-1 border-2 border-black rounded text-sm">
+              <option value="">-- Select Part --</option>
+            </select>
+          </div>
+
+          <!-- Position Controls -->
+          <div id="transform-controls" class="hidden">
+            <!-- Visibility Toggle -->
+            <div class="pt-4 border-t-2 border-gray-300">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  id="visibility-toggle"
+                  checked
+                  class="w-4 h-4 border-2 border-black rounded"
+                />
+                <span class="font-bold">Visible</span>
+              </label>
+            </div>
+
+            <div class="pt-4 border-t-2 border-gray-300">
+              <p class="font-bold mb-3">Position</p>
+              <div class="space-y-2">
+                <div>
+                  <label class="block text-xs mb-1">X Offset</label>
+                  <input
+                    type="number"
+                    id="pos-x"
+                    step="0.1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Y Offset</label>
+                  <input
+                    type="number"
+                    id="pos-y"
+                    step="0.1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Z Offset</label>
+                  <input
+                    type="number"
+                    id="pos-z"
+                    step="0.1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Rotation Controls -->
+            <div class="pt-4 border-t-2 border-gray-300">
+              <p class="font-bold mb-3">Rotation (degrees)</p>
+              <div class="space-y-2">
+                <div>
+                  <label class="block text-xs mb-1">X Rotation</label>
+                  <input
+                    type="number"
+                    id="rot-x"
+                    step="1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Y Rotation</label>
+                  <input
+                    type="number"
+                    id="rot-y"
+                    step="1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs mb-1">Z Rotation</label>
+                  <input
+                    type="number"
+                    id="rot-z"
+                    step="1"
+                    class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Scale Controls -->
+            <div class="pt-4 border-t-2 border-gray-300">
+              <p class="font-bold mb-3">Scale</p>
+              <div>
+                <label class="block text-xs mb-1">Uniform Scale</label>
+                <input
+                  type="number"
+                  id="scale"
+                  step="0.1"
+                  min="0.1"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+            </div>
+
+            <!-- Reset Button -->
+            <div class="pt-4">
+              <button
+                id="reset-transform"
+                class="w-full px-3 py-2 bg-black text-white font-bold text-xs hover:bg-gray-800 border-2 border-black"
+              >
+                Reset Transform
+              </button>
+            </div>
+          </div>
+
+          <!-- Status -->
+          <div id="model-status" class="pt-4 border-t-2 border-gray-300 hidden">
+            <p class="text-xs text-green-700 font-bold">✓ Parts Loaded</p>
+            <p id="parts-count" class="text-xs text-gray-600 mt-1"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Credit -->
+    <div id="footer-credit" class="fixed bottom-5 right-5 z-10 animate-slideInUp hidden">
+      <div class="bg-white/90 border-4 border-black px-4 py-2 text-black text-xs font-bold">
+        <a
+          href="https://layogtima.com"
+          target="_blank"
+          class="hover:underline hover:decoration-2 hover:underline-offset-4 transition-all duration-200"
+        >
+          ABSURD INDUSTRIES
+        </a>
+        <span class="mx-2">|</span>
+        <span>Open-Source Hardware Guild</span>
+      </div>
+    </div>
+
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- OBJLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
+    <!-- RGBELoader for HDR environments -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+    <!-- Main Application Script -->
+    <script src="app.js"></script>
+  </body>
+</html>

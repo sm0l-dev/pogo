@@ -289,13 +289,13 @@ async function loadModels() {
   try {
     // Load connector.obj
     updateLoadingProgress(65, "Loading full connector assembly...");
-    AppState.connectorModel = await loadOBJ(loader, "./connector.obj");
+    AppState.connectorModel = await loadOBJ(loader, "./3d-files/connector.obj");
     console.log("✓ Connector OBJ loaded");
 
     // Load connector-pins.obj (optional)
     try {
       updateLoadingProgress(80, "Loading pogo pins...");
-      AppState.pinsModel = await loadOBJ(loader, "./connector-pins.obj");
+      AppState.pinsModel = await loadOBJ(loader, "./3d-files/connector-pins.obj");
       console.log("✓ Pins OBJ loaded");
     } catch (pinsError) {
       console.log("ℹ️ Pins model not found, using connector only");
