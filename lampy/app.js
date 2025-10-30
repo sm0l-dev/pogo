@@ -101,6 +101,10 @@ const DOM = {
   camY: null,
   camZ: null,
   resetCamera: null,
+  sceneRotX: null,
+  sceneRotY: null,
+  sceneRotZ: null,
+  resetSceneRotation: null,
   objectSelector: null,
   transformControls: null,
   posX: null,
@@ -156,6 +160,10 @@ function cacheDOMElements() {
   DOM.camY = document.getElementById("cam-y");
   DOM.camZ = document.getElementById("cam-z");
   DOM.resetCamera = document.getElementById("reset-camera");
+  DOM.sceneRotX = document.getElementById("scene-rot-x");
+  DOM.sceneRotY = document.getElementById("scene-rot-y");
+  DOM.sceneRotZ = document.getElementById("scene-rot-z");
+  DOM.resetSceneRotation = document.getElementById("reset-scene-rotation");
   DOM.objectSelector = document.getElementById("object-selector");
   DOM.transformControls = document.getElementById("transform-controls");
   DOM.posX = document.getElementById("pos-x");
@@ -195,6 +203,7 @@ function hideLoadingScreen() {
 // ============================================
 const STORAGE_KEY = "lampy_part_transforms";
 const CAMERA_STORAGE_KEY = "lampy_camera_settings";
+const SCENE_ROTATION_KEY = "lampy_scene_rotation";
 const CONFIG_FILE_PATH = "./transforms-config.json";
 
 function saveTransforms() {
@@ -238,14 +247,17 @@ async function loadBaselineConfig() {
     const response = await fetch(CONFIG_FILE_PATH);
     if (!response.ok) {
       console.warn("⚠️ Could not load baseline config, using defaults");
-      return {};
+      return { transforms: {}, partsGroupRotation: null };
     }
     const config = await response.json();
     console.log("✓ Loaded baseline config from file");
-    return config.transforms || {};
+    return {
+      transforms: config.transforms || {},
+      partsGroupRotation: config.partsGroupRotation || null,
+    };
   } catch (e) {
     console.error("❌ Error loading baseline config:", e);
-    return {};
+    return { transforms: {}, partsGroupRotation: null };
   }
 }
 
@@ -283,6 +295,11 @@ function exportConfigToFile() {
   const config = {
     version: "1.0",
     lastUpdated: new Date().toISOString(),
+    partsGroupRotation: {
+      x: AppState.partsGroup.rotation.x,
+      y: AppState.partsGroup.rotation.y,
+      z: AppState.partsGroup.rotation.z,
+    },
     transforms: transforms,
   };
 
@@ -303,6 +320,7 @@ function exportConfigToFile() {
 async function resetToBaseline() {
   // Clear localStorage
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(SCENE_ROTATION_KEY);
   console.log("✓ Cleared localStorage");
 
   // Reload the page to apply baseline config
@@ -374,6 +392,48 @@ function updateCameraUI() {
   DOM.camY.value = AppState.camera.position.y.toFixed(1);
   DOM.camZ.value = AppState.camera.position.z.toFixed(1);
   DOM.zoomSlider.value = AppState.currentZoom;
+}
+
+function saveSceneRotation() {
+  if (!AppState.partsGroup) return;
+
+  const rotation = {
+    x: AppState.partsGroup.rotation.x,
+    y: AppState.partsGroup.rotation.y,
+    z: AppState.partsGroup.rotation.z,
+  };
+  localStorage.setItem(SCENE_ROTATION_KEY, JSON.stringify(rotation));
+  console.log("✓ Saved scene rotation to localStorage");
+}
+
+function loadSceneRotation() {
+  const saved = localStorage.getItem(SCENE_ROTATION_KEY);
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error("❌ Error parsing saved scene rotation:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+function applySceneRotation(rotation) {
+  if (rotation && AppState.partsGroup) {
+    AppState.partsGroup.rotation.x = rotation.x;
+    AppState.partsGroup.rotation.y = rotation.y;
+    AppState.partsGroup.rotation.z = rotation.z;
+    updateSceneRotationUI();
+  }
+}
+
+function updateSceneRotationUI() {
+  if (!AppState.partsGroup) return;
+
+  DOM.sceneRotX.value = ((AppState.partsGroup.rotation.x * 180) / Math.PI).toFixed(1);
+  DOM.sceneRotY.value = ((AppState.partsGroup.rotation.y * 180) / Math.PI).toFixed(1);
+  DOM.sceneRotZ.value = ((AppState.partsGroup.rotation.z * 180) / Math.PI).toFixed(1);
 }
 
 // ============================================
@@ -499,13 +559,15 @@ async function loadAllParts() {
   let loadedCount = 0;
 
   // Load baseline config from file
-  const baselineTransforms = await loadBaselineConfig();
+  const baselineConfig = await loadBaselineConfig();
 
   // Load localStorage overrides
   const localStorageTransforms = loadTransforms();
+  const localStorageSceneRotation = loadSceneRotation();
 
   // Merge baseline with localStorage (localStorage takes precedence)
-  const finalTransforms = mergeTransforms(baselineTransforms, localStorageTransforms);
+  const finalTransforms = mergeTransforms(baselineConfig.transforms, localStorageTransforms);
+  const finalSceneRotation = localStorageSceneRotation || baselineConfig.partsGroupRotation;
 
   for (let i = 0; i < totalParts; i++) {
     const partInfo = PARTS_TO_LOAD[i];
@@ -546,6 +608,14 @@ async function loadAllParts() {
 
   updateLoadingProgress(100, "All parts loaded!");
   DOM.partsCount.textContent = `${loadedCount} parts loaded`;
+
+  // Apply scene rotation from config
+  if (finalSceneRotation) {
+    applySceneRotation(finalSceneRotation);
+    console.log("✓ Applied scene rotation from config");
+  } else {
+    updateSceneRotationUI();
+  }
 
   // Populate object selector
   populateObjectSelector();
@@ -827,6 +897,34 @@ function setupEventListeners() {
     console.log("✓ Reset camera to default");
   });
 
+  // Scene rotation controls
+  DOM.sceneRotX.addEventListener("input", (e) => {
+    if (!AppState.partsGroup) return;
+    AppState.partsGroup.rotation.x = ((parseFloat(e.target.value) || 0) * Math.PI) / 180;
+    saveSceneRotation();
+  });
+
+  DOM.sceneRotY.addEventListener("input", (e) => {
+    if (!AppState.partsGroup) return;
+    AppState.partsGroup.rotation.y = ((parseFloat(e.target.value) || 0) * Math.PI) / 180;
+    saveSceneRotation();
+  });
+
+  DOM.sceneRotZ.addEventListener("input", (e) => {
+    if (!AppState.partsGroup) return;
+    AppState.partsGroup.rotation.z = ((parseFloat(e.target.value) || 0) * Math.PI) / 180;
+    saveSceneRotation();
+  });
+
+  // Reset scene rotation button
+  DOM.resetSceneRotation.addEventListener("click", () => {
+    if (!AppState.partsGroup) return;
+    AppState.partsGroup.rotation.set(0, 0, 0);
+    updateSceneRotationUI();
+    saveSceneRotation();
+    console.log("✓ Reset scene rotation to default");
+  });
+
   // Object selector
   DOM.objectSelector.addEventListener("change", (e) => {
     const partData = getSelectedPart();
@@ -898,6 +996,10 @@ function setupMouseControls() {
   });
 
   canvas.addEventListener("mouseup", () => {
+    if (AppState.isDragging) {
+      saveSceneRotation();
+      updateSceneRotationUI();
+    }
     AppState.isDragging = false;
   });
 
@@ -938,6 +1040,10 @@ function setupMouseControls() {
   );
 
   canvas.addEventListener("touchend", () => {
+    if (AppState.isDragging) {
+      saveSceneRotation();
+      updateSceneRotationUI();
+    }
     AppState.isDragging = false;
   });
 }

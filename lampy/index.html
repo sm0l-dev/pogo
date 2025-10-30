@@ -132,6 +132,49 @@
             </button>
           </details>
 
+          <!-- Scene Rotation Controls -->
+          <details class="pt-4 border-t-2 border-gray-300">
+            <summary class="font-bold mb-3 cursor-pointer hover:text-gray-700">Scene Rotation</summary>
+            <div class="space-y-2 mt-3">
+              <div>
+                <label class="block text-xs mb-1">Rotation X (degrees)</label>
+                <input
+                  type="number"
+                  id="scene-rot-x"
+                  step="1"
+                  value="0"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Rotation Y (degrees)</label>
+                <input
+                  type="number"
+                  id="scene-rot-y"
+                  step="1"
+                  value="0"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+              <div>
+                <label class="block text-xs mb-1">Rotation Z (degrees)</label>
+                <input
+                  type="number"
+                  id="scene-rot-z"
+                  step="1"
+                  value="0"
+                  class="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                />
+              </div>
+            </div>
+            <button
+              id="reset-scene-rotation"
+              class="w-full mt-3 px-3 py-1 bg-gray-200 text-black font-bold text-xs hover:bg-gray-300 border-2 border-black"
+            >
+              Reset Scene Rotation
+            </button>
+          </details>
+
           <!-- Object Selection -->
           <div class="pt-4 border-t-2 border-gray-300">
             <label class="block mb-2 font-bold">Select Object</label>
