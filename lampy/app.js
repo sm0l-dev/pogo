@@ -112,6 +112,8 @@ const DOM = {
   scale: null,
   visibilityToggle: null,
   resetTransform: null,
+  exportConfig: null,
+  resetToBaseline: null,
 };
 
 // ============================================
@@ -165,6 +167,8 @@ function cacheDOMElements() {
   DOM.scale = document.getElementById("scale");
   DOM.visibilityToggle = document.getElementById("visibility-toggle");
   DOM.resetTransform = document.getElementById("reset-transform");
+  DOM.exportConfig = document.getElementById("export-config");
+  DOM.resetToBaseline = document.getElementById("reset-to-baseline");
 }
 
 // ============================================
@@ -191,6 +195,7 @@ function hideLoadingScreen() {
 // ============================================
 const STORAGE_KEY = "lampy_part_transforms";
 const CAMERA_STORAGE_KEY = "lampy_camera_settings";
+const CONFIG_FILE_PATH = "./transforms-config.json";
 
 function saveTransforms() {
   const transforms = {};
@@ -226,6 +231,82 @@ function loadTransforms() {
     }
   }
   return {};
+}
+
+async function loadBaselineConfig() {
+  try {
+    const response = await fetch(CONFIG_FILE_PATH);
+    if (!response.ok) {
+      console.warn("⚠️ Could not load baseline config, using defaults");
+      return {};
+    }
+    const config = await response.json();
+    console.log("✓ Loaded baseline config from file");
+    return config.transforms || {};
+  } catch (e) {
+    console.error("❌ Error loading baseline config:", e);
+    return {};
+  }
+}
+
+function mergeTransforms(baseline, overrides) {
+  // Start with baseline, then overlay any overrides from localStorage
+  const merged = { ...baseline };
+
+  Object.keys(overrides).forEach((partName) => {
+    merged[partName] = overrides[partName];
+  });
+
+  return merged;
+}
+
+function exportConfigToFile() {
+  const transforms = {};
+  AppState.loadedParts.forEach((partData) => {
+    const part = partData.model;
+    transforms[partData.info.name] = {
+      position: {
+        x: part.position.x,
+        y: part.position.y,
+        z: part.position.z,
+      },
+      rotation: {
+        x: part.rotation.x,
+        y: part.rotation.y,
+        z: part.rotation.z,
+      },
+      scale: part.scale.x,
+      visible: part.visible,
+    };
+  });
+
+  const config = {
+    version: "1.0",
+    lastUpdated: new Date().toISOString(),
+    transforms: transforms,
+  };
+
+  // Create blob and download
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "transforms-config.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  console.log("✓ Exported config to file");
+}
+
+async function resetToBaseline() {
+  // Clear localStorage
+  localStorage.removeItem(STORAGE_KEY);
+  console.log("✓ Cleared localStorage");
+
+  // Reload the page to apply baseline config
+  window.location.reload();
 }
 
 function applyTransform(part, transform) {
@@ -417,8 +498,14 @@ async function loadAllParts() {
   const totalParts = PARTS_TO_LOAD.length;
   let loadedCount = 0;
 
-  // Load saved transforms
-  const savedTransforms = loadTransforms();
+  // Load baseline config from file
+  const baselineTransforms = await loadBaselineConfig();
+
+  // Load localStorage overrides
+  const localStorageTransforms = loadTransforms();
+
+  // Merge baseline with localStorage (localStorage takes precedence)
+  const finalTransforms = mergeTransforms(baselineTransforms, localStorageTransforms);
 
   for (let i = 0; i < totalParts; i++) {
     const partInfo = PARTS_TO_LOAD[i];
@@ -441,10 +528,10 @@ async function loadAllParts() {
       const xPosition = (i - (totalParts - 1) / 2) * SPACING;
       part.position.x = xPosition;
 
-      // Apply saved transform if exists
-      if (savedTransforms[partInfo.name]) {
-        applyTransform(part, savedTransforms[partInfo.name]);
-        console.log(`✓ Applied saved transform for ${partInfo.name}`);
+      // Apply transform from merged config (baseline + localStorage)
+      if (finalTransforms[partInfo.name]) {
+        applyTransform(part, finalTransforms[partInfo.name]);
+        console.log(`✓ Applied transform for ${partInfo.name}`);
       }
 
       AppState.partsGroup.add(part);
@@ -768,6 +855,12 @@ function setupEventListeners() {
 
   // Reset button
   DOM.resetTransform.addEventListener("click", resetPartTransform);
+
+  // Export config button
+  DOM.exportConfig.addEventListener("click", exportConfigToFile);
+
+  // Reset to baseline button
+  DOM.resetToBaseline.addEventListener("click", resetToBaseline);
 
   // Mouse controls
   setupMouseControls();

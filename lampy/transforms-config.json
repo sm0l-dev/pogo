@@ -1,0 +1,104 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-10-30T11:07:00.493Z",
+  "transforms": {
+    "Base": {
+      "position": {
+        "x": 12.8,
+        "y": -53,
+        "z": 10.7
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 3.141592653589793,
+        "z": 0
+      },
+      "scale": 0.41,
+      "visible": true
+    },
+    "Mag Bottom": {
+      "position": {
+        "x": 0,
+        "y": -44.8,
+        "z": 0
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": 0.41,
+      "visible": true
+    },
+    "Mag Insert": {
+      "position": {
+        "x": 0,
+        "y": -47.4,
+        "z": 0
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": 0.42,
+      "visible": true
+    },
+    "Lampy Main": {
+      "position": {
+        "x": 0,
+        "y": -40,
+        "z": 0
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 0.3,
+      "visible": true
+    },
+    "Connector": {
+      "position": {
+        "x": 0,
+        "y": -46.5,
+        "z": 0
+      },
+      "rotation": {
+        "x": 1.5707963267948966,
+        "y": 0,
+        "z": 1.5707963267948966
+      },
+      "scale": 0.41,
+      "visible": true
+    },
+    "Connector Pins": {
+      "position": {
+        "x": 0,
+        "y": -43.2,
+        "z": 0
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": -1.5707963267948966
+      },
+      "scale": 0.42,
+      "visible": true
+    },
+    "XIAO ESP32C3": {
+      "position": {
+        "x": -30,
+        "y": -51.8,
+        "z": 7.5
+      },
+      "rotation": {
+        "x": -1.5707963267948966,
+        "y": 0,
+        "z": 0
+      },
+      "scale": 0.42,
+      "visible": true
+    }
+  }
+}
