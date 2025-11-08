@@ -118,6 +118,9 @@ const DOM = {
   resetTransform: null,
   exportConfig: null,
   resetToBaseline: null,
+  captureStartState: null,
+  captureEndState: null,
+  exportAnimConfig: null,
 };
 
 // ============================================
@@ -177,6 +180,9 @@ function cacheDOMElements() {
   DOM.resetTransform = document.getElementById("reset-transform");
   DOM.exportConfig = document.getElementById("export-config");
   DOM.resetToBaseline = document.getElementById("reset-to-baseline");
+  DOM.captureStartState = document.getElementById("capture-start-state");
+  DOM.captureEndState = document.getElementById("capture-end-state");
+  DOM.exportAnimConfig = document.getElementById("export-anim-config");
 }
 
 // ============================================
@@ -205,6 +211,11 @@ const STORAGE_KEY = "lampy_part_transforms";
 const CAMERA_STORAGE_KEY = "lampy_camera_settings";
 const SCENE_ROTATION_KEY = "lampy_scene_rotation";
 const CONFIG_FILE_PATH = "./transforms-config.json";
+
+// Animation state storage keys
+const ANIM_START_STATE_KEY = "lampy_anim_start_state";
+const ANIM_END_STATE_KEY = "lampy_anim_end_state";
+const ANIM_CONFIG_KEY = "lampy_anim_config";
 
 function saveTransforms() {
   const transforms = {};
@@ -434,6 +445,128 @@ function updateSceneRotationUI() {
   DOM.sceneRotX.value = ((AppState.partsGroup.rotation.x * 180) / Math.PI).toFixed(1);
   DOM.sceneRotY.value = ((AppState.partsGroup.rotation.y * 180) / Math.PI).toFixed(1);
   DOM.sceneRotZ.value = ((AppState.partsGroup.rotation.z * 180) / Math.PI).toFixed(1);
+}
+
+// ============================================
+// ANIMATION STATE MANAGEMENT
+// ============================================
+function captureCurrentState() {
+  const transforms = {};
+  AppState.loadedParts.forEach((partData) => {
+    const part = partData.model;
+    transforms[partData.info.name] = {
+      position: {
+        x: part.position.x,
+        y: part.position.y,
+        z: part.position.z,
+      },
+      rotation: {
+        x: part.rotation.x,
+        y: part.rotation.y,
+        z: part.rotation.z,
+      },
+      scale: part.scale.x,
+      visible: part.visible,
+    };
+  });
+
+  return {
+    partsGroupRotation: {
+      x: AppState.partsGroup.rotation.x,
+      y: AppState.partsGroup.rotation.y,
+      z: AppState.partsGroup.rotation.z,
+    },
+    transforms: transforms,
+  };
+}
+
+function saveAnimationStartState() {
+  const state = captureCurrentState();
+  localStorage.setItem(ANIM_START_STATE_KEY, JSON.stringify(state));
+  console.log("✓ Saved animation START state");
+  alert("✓ Captured START state");
+}
+
+function saveAnimationEndState() {
+  const state = captureCurrentState();
+  localStorage.setItem(ANIM_END_STATE_KEY, JSON.stringify(state));
+  console.log("✓ Saved animation END state");
+  alert("✓ Captured END state");
+}
+
+function loadAnimationConfig() {
+  const savedConfig = localStorage.getItem(ANIM_CONFIG_KEY);
+  if (savedConfig) {
+    try {
+      return JSON.parse(savedConfig);
+    } catch (e) {
+      console.error("❌ Error parsing animation config:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
+function saveAnimationConfig(config) {
+  localStorage.setItem(ANIM_CONFIG_KEY, JSON.stringify(config));
+  console.log("✓ Saved animation config to localStorage");
+}
+
+function exportAnimationConfigToFile() {
+  const startState = localStorage.getItem(ANIM_START_STATE_KEY);
+  const endState = localStorage.getItem(ANIM_END_STATE_KEY);
+
+  if (!startState || !endState) {
+    alert("⚠️ Please capture both START and END states first!");
+    return;
+  }
+
+  const animConfig = {
+    version: "1.0",
+    lastUpdated: new Date().toISOString(),
+    camera: {
+      position: {
+        x: AppState.camera.position.x,
+        y: AppState.camera.position.y,
+        z: AppState.camera.position.z,
+      },
+      fov: AppState.camera.fov,
+    },
+    scene: {
+      initialRotation: {
+        x: AppState.partsGroup.rotation.x,
+        y: AppState.partsGroup.rotation.y,
+        z: AppState.partsGroup.rotation.z,
+      },
+    },
+    animation: {
+      duration: 3000, // 3 seconds default
+      easing: "easeInOutCubic",
+      mode: "autoplay", // or "scroll"
+      loop: false,
+    },
+    states: {
+      start: JSON.parse(startState),
+      end: JSON.parse(endState),
+    },
+  };
+
+  // Save to localStorage too
+  saveAnimationConfig(animConfig);
+
+  // Create blob and download
+  const blob = new Blob([JSON.stringify(animConfig, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "transforms-animation-config.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  console.log("✓ Exported animation config to file (including camera and scene settings)");
+  alert("✓ Animation config exported!");
 }
 
 // ============================================
@@ -959,6 +1092,11 @@ function setupEventListeners() {
 
   // Reset to baseline button
   DOM.resetToBaseline.addEventListener("click", resetToBaseline);
+
+  // Animation state capture buttons
+  DOM.captureStartState.addEventListener("click", saveAnimationStartState);
+  DOM.captureEndState.addEventListener("click", saveAnimationEndState);
+  DOM.exportAnimConfig.addEventListener("click", exportAnimationConfigToFile);
 
   // Mouse controls
   setupMouseControls();
