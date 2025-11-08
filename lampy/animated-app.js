@@ -37,35 +37,35 @@ const Easings = {
 // ============================================
 const PARTS_TO_LOAD = [
   {
-    file: "../3d-files/base.obj",
+    file: "https://3dfiles.sm0l.dev/base.obj",
     name: "Base",
     components: {
       node: { material: "plastic", color: "off-white" },
     },
   },
   {
-    file: "../3d-files/lampy-mag-bottom-wider.obj",
+    file: "https://3dfiles.sm0l.dev/lampy-mag-bottom-wider.obj",
     name: "Mag Bottom",
     components: {
       node: { material: "plastic", color: "off-white" },
     },
   },
   {
-    file: "../3d-files/lampy-mag-insert-fillet.obj",
+    file: "https://3dfiles.sm0l.dev/lampy-mag-insert-fillet.obj",
     name: "Mag Insert",
     components: {
       node: { material: "plastic", color: "off-white" },
     },
   },
   {
-    file: "../3d-files/lampy.obj",
+    file: "https://3dfiles.sm0l.dev/lampy.obj",
     name: "Lampy Main",
     components: {
       node: { material: "paper", color: "off-white" },
     },
   },
   {
-    file: "../3d-files/connector.obj",
+    file: "https://3dfiles.sm0l.dev/connector.obj",
     name: "Connector",
     components: {
       housing: { material: "plastic", color: "dark-gray" },
@@ -74,7 +74,7 @@ const PARTS_TO_LOAD = [
     },
   },
   {
-    file: "../3d-files/connector-pins.obj",
+    file: "https://3dfiles.sm0l.dev/connector-pins.obj",
     name: "Connector Pins",
     components: {
       housing: { material: "plastic", color: "dark-gray" },
@@ -82,7 +82,7 @@ const PARTS_TO_LOAD = [
       pin: { material: "metal", color: "gold" },
     },
   },
-  { file: "../3d-files/XIAO-ESP32C3.obj", name: "XIAO ESP32C3" },
+  { file: "https://3dfiles.sm0l.dev/XIAO-ESP32C3.obj", name: "XIAO ESP32C3" },
 ];
 
 const SPACING = 15; // Default spacing (will be overridden by animation config)
@@ -400,7 +400,9 @@ async function loadAllParts() {
   if (AppState.animationConfig?.scene?.initialRotation) {
     const rot = AppState.animationConfig.scene.initialRotation;
     AppState.partsGroup.rotation.set(rot.x, rot.y, rot.z);
-    console.log(`✓ Applied initial scene rotation from config: (${rot.x.toFixed(2)}, ${rot.y.toFixed(2)}, ${rot.z.toFixed(2)})`);
+    console.log(
+      `✓ Applied initial scene rotation from config: (${rot.x.toFixed(2)}, ${rot.y.toFixed(2)}, ${rot.z.toFixed(2)})`
+    );
   }
 
   setTimeout(hideLoadingScreen, 500);
@@ -668,7 +670,7 @@ function togglePlayPause() {
       // Restart from beginning
       AppState.animationProgress = 0;
     }
-    AppState.animationStartTime = Date.now() - (AppState.animationProgress * AppState.animationConfig.animation.duration);
+    AppState.animationStartTime = Date.now() - AppState.animationProgress * AppState.animationConfig.animation.duration;
     startAnimation();
   }
 }
