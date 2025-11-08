@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lampy Animation | Absurd Industries</title>
+
+    <!-- Meta Tags -->
+    <meta name="description" content="3D animated lamp parts - watch the transformation." />
+    <meta name="author" content="Amit @ Absurd Industries" />
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              mono: ["Space Mono", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body class="bg-black text-white overflow-hidden font-mono">
+    <!-- Loading Screen -->
+    <div
+      id="loading-screen"
+      class="fixed inset-0 bg-black/95 backdrop-blur-[10px] flex items-center justify-center z-[1000]"
+    >
+      <div class="bg-white/95 border-4 border-black p-8 text-black text-center">
+        <h2 class="text-3xl font-bold mb-4">
+          LOAD
+          <span class="text-xs align-super">ING</span>
+        </h2>
+        <p id="loading-message" class="text-sm mb-4">Initializing animation...</p>
+        <div class="w-80 h-3 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
+          <div id="loading-bar" class="h-full bg-black transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="loading-percentage" class="text-xs mt-2 text-gray-600">0%</p>
+      </div>
+    </div>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container" class="fixed top-0 left-0 w-screen h-screen z-[1]"></div>
+
+    <!-- Animation Controls (Minimalist Overlay) -->
+    <div id="animation-controls" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-10 hidden">
+      <div class="bg-white/95 border-4 border-black px-6 py-3 flex items-center space-x-4">
+        <button
+          id="play-pause-btn"
+          class="px-4 py-2 bg-black text-white font-bold text-xs hover:bg-gray-800 border-2 border-black"
+        >
+          PLAY
+        </button>
+        <div class="flex items-center space-x-2">
+          <span class="text-xs font-bold text-black">Progress:</span>
+          <div class="w-48 h-2 bg-gray-200 rounded-full overflow-hidden border border-black">
+            <div id="progress-bar" class="h-full bg-black transition-all duration-100" style="width: 0%"></div>
+          </div>
+        </div>
+        <span id="progress-text" class="text-xs font-bold text-black">0%</span>
+      </div>
+    </div>
+
+    <!-- Footer Credit -->
+    <div id="footer-credit" class="fixed bottom-5 right-5 z-10 hidden">
+      <div class="bg-white/90 border-4 border-black px-4 py-2 text-black text-xs font-bold">
+        <a
+          href="https://layogtima.com"
+          target="_blank"
+          class="hover:underline hover:decoration-2 hover:underline-offset-4 transition-all duration-200"
+        >
+          ABSURD INDUSTRIES
+        </a>
+        <span class="mx-2">|</span>
+        <span>Open-Source Hardware Guild</span>
+      </div>
+    </div>
+
+    <!-- Three.js r128 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- OBJLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+
+    <!-- RGBELoader for HDR environments -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/RGBELoader.js"></script>
+
+    <!-- Animation Application Script -->
+    <script src="animated-app.js"></script>
+  </body>
+</html>
